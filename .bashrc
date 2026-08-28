@@ -103,7 +103,6 @@ alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
-	. ~/dotfiles/zoxide_fzf.sh
 fi
 
 # enable programmable completion features (you don't need to enable
@@ -117,8 +116,69 @@ if ! shopt -oq posix; then
   fi
 fi
 
-export PATH="$PATH:/opt/nvim"
+# command not found fallback
+# check current dir for an executable if none is found in $PATH
+command_not_found_handle() {
+    local cmd="$1"
+    shift
+    if [[ -x "./$cmd" ]]; then
+        "./$cmd" "$@"
+        return $?
+    else
+        echo "bash: $cmd: command not found" >&2
+        return 127
+    fi
+}
+
+export PATH="$PATH:/opt/nvim/bin/"
 export EDITOR='nvim'
 export VISUAL='nvim'
 
 eval "$(zoxide init bash)"
+
+# --- fzf stuff ---
+
+# Set fd as the default search backend for fzf (fast & respects .gitignore)
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+
+# Source default fzf keybindings (Ctrl+T, Alt+C, Ctrl+R)
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh    # If Zsh
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash  # If Bash
+
+# Quick Helper Functions
+# -----------------------------------------------------------------------------
+
+# 1. 'f' - Fuzzy find a file and open it in Neovim
+f() {
+  local file
+  file=$(fzf --preview 'cat {}' --preview-window=right:60%) && nvim "$file"
+}
+
+# 2. 'cd' replacement - Fuzzy jump to ANY sub-directory from anywhere
+fd() {
+  local dir
+  dir=$(fda --type d --hidden --exclude .git . "${1:-.}" | fzf --preview 'tree -C {} | head -50') && cd "$dir"
+}
+
+# --- /fzf stuff ---
+
+# opencode
+export PATH=/home/n0mad/.opencode/bin:$PATH
+export PATH=/home/n0mad/Services/llama.cpp/build/bin:$PATH
+export PATH=/home/n0mad/.local/share/gram.app/bin/:$PATH
+
+# --- llama server ---
+alias llama-start='llama-server --models-dir ~/.cache/huggingface/hub/ --port 8010 -ngl 20'
+# --- /llama server ---
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# --- jdk for minecraft ---
+
+export PATH=/opt/jdk-25.0.4.1+1/bin/:$PATH
+alias sklauncher='java -jar ~/minecraft/SKlauncher-3.2.18.jar'
+. "$HOME/.cargo/env"
